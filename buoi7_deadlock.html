@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buổi 7 — Deadlock & Xử Lý Treo Máy</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fff7f0;--white:#fff;--border:#e2e8f0;
+  --blue:#2563eb;--blue-l:#eff6ff;--blue-b:#bfdbfe;
+  --green:#16a34a;--green-l:#f0fdf4;--green-b:#bbf7d0;
+  --amber:#d97706;--amber-l:#fffbeb;--amber-b:#fde68a;
+  --red:#dc2626;--red-l:#fef2f2;--red-b:#fecaca;
+  --orange:#ea580c;--orange-l:#fff7ed;--orange-b:#fed7aa;
+  --purple:#7c3aed;--purple-l:#f5f3ff;--purple-b:#ddd6fe;
+  --teal:#0d9488;--teal-l:#f0fdfa;--teal-b:#99f6e4;
+  --text:#1e293b;--text2:#475569;--text3:#94a3b8;
+  --body:'Nunito',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:16px;line-height:1.7}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--orange-b);border-radius:3px}
+
+/* ── HERO ── */
+.hero{background:linear-gradient(135deg,#1c0a00 0%,#7c2d12 45%,#dc2626 100%);padding:4rem 1.5rem 5.5rem;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 25% 40%,rgba(251,146,60,.18) 0%,transparent 55%),radial-gradient(circle at 80% 70%,rgba(220,38,38,.15) 0%,transparent 45%)}
+.hero-inner{position:relative;z-index:1;max-width:720px;margin:0 auto}
+.hero-badge{display:inline-block;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);color:#fed7aa;font-size:12px;font-weight:800;letter-spacing:2px;text-transform:uppercase;padding:6px 18px;border-radius:50px;margin-bottom:1.5rem}
+.hero h1{font-size:clamp(2.2rem,6vw,4rem);font-weight:900;color:#fff;line-height:1.08;margin-bottom:1rem}
+.hero h1 .y{color:#fde68a}.hero h1 .l2{display:block;color:#fed7aa}
+.hero-sub{font-size:1.05rem;color:#fecaca;font-weight:500;max-width:560px;margin:0 auto 2.5rem;line-height:1.75}
+.hero-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-bottom:2rem}
+.hc{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.22);color:#fef3c7;font-size:13px;font-weight:700;padding:7px 16px;border-radius:50px;text-decoration:none;transition:all .2s}
+.hc:hover{background:rgba(255,255,255,.22);color:#fff}
+.hero-wave{position:absolute;bottom:-2px;left:0;right:0;height:56px;background:var(--bg);clip-path:ellipse(55% 100% at 50% 100%)}
+
+/* ── NAV ── */
+.snav{background:var(--white);border-bottom:2px solid var(--border);display:flex;overflow-x:auto;scrollbar-width:none;position:sticky;top:0;z-index:100;padding:0 1rem}
+.snav::-webkit-scrollbar{display:none}
+.snav a{font-size:13px;font-weight:800;padding:13px 16px;color:var(--text2);white-space:nowrap;text-decoration:none;border-bottom:3px solid transparent;transition:all .2s}
+.snav a:hover{color:var(--orange)}.snav a.on{color:var(--orange);border-bottom-color:var(--orange)}
+
+/* ── LAYOUT ── */
+.page{max-width:920px;margin:0 auto;padding:0 1rem}
+.section{padding:4rem 0}
+.sep{height:2px;background:var(--border);margin:0 1rem;border-radius:1px}
+
+/* ── SECTION HEADER ── */
+.sh{margin-bottom:2.25rem}
+.sh-num{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;font-weight:900;font-size:15px;margin-bottom:.75rem}
+.sn-o{background:var(--orange-l);color:var(--orange)}
+.sn-r{background:var(--red-l);color:var(--red)}
+.sn-g{background:var(--green-l);color:var(--green)}
+.sn-b{background:var(--blue-l);color:var(--blue)}
+.sn-p{background:var(--purple-l);color:var(--purple)}
+.sh h2{font-size:clamp(1.8rem,4vw,2.6rem);font-weight:900;color:var(--text);line-height:1.15;margin-bottom:.5rem}
+.sh p{font-size:.98rem;color:var(--text2);max-width:580px;line-height:1.75}
+
+/* ── CARDS ── */
+.card{background:var(--white);border:2px solid var(--border);border-radius:16px;padding:1.5rem;margin-bottom:1rem;transition:box-shadow .2s}
+.card:hover{box-shadow:0 4px 20px rgba(234,88,12,.08)}
+.card h3{font-size:1.05rem;font-weight:800;color:var(--text);margin-bottom:.65rem}
+.card p{font-size:.92rem;color:var(--text2);line-height:1.75;margin-bottom:.55rem}
+.card p:last-child{margin-bottom:0}
+.card-o{border-color:var(--orange-b);background:var(--orange-l)}.card-o h3{color:var(--orange)}
+.card-r{border-color:var(--red-b);background:var(--red-l)}.card-r h3{color:var(--red)}
+.card-g{border-color:var(--green-b);background:var(--green-l)}.card-g h3{color:var(--green)}
+.card-b{border-color:var(--blue-b);background:var(--blue-l)}.card-b h3{color:#1d4ed8}
+.card-p{border-color:var(--purple-b);background:var(--purple-l)}.card-p h3{color:var(--purple)}
+.card-t{border-color:var(--teal-b);background:var(--teal-l)}.card-t h3{color:var(--teal)}
+.card-a{border-color:var(--amber-b);background:var(--amber-l)}.card-a h3{color:var(--amber)}
+
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-bottom:1rem}
+.g3{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:1rem;margin-bottom:1rem}
+.g4{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:1rem;margin-bottom:1rem}
+
+/* ── ANALOGY ── */
+.analogy{background:var(--white);border:2px dashed var(--orange-b);border-radius:16px;padding:1.4rem;margin-bottom:1rem;display:flex;gap:1rem;align-items:flex-start}
+.analogy-ico{font-size:2.8rem;flex-shrink:0;line-height:1}
+.analogy h4{font-size:1rem;font-weight:800;color:var(--orange);margin-bottom:.3rem}
+.analogy p{font-size:.9rem;color:var(--text2);line-height:1.7;margin:0}
+
+/* ── STEPS ── */
+.steps{display:grid;gap:.65rem;margin:.75rem 0}
+.step{display:flex;gap:13px;align-items:flex-start;padding:.95rem 1.1rem;background:var(--white);border:2px solid var(--border);border-radius:12px;transition:border-color .2s,transform .15s}
+.step:hover{border-color:var(--orange-b);transform:translateX(3px)}
+.sn3{width:30px;height:30px;border-radius:8px;background:var(--orange);color:#fff;font-weight:900;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sn3.g{background:var(--green)}.sn3.b{background:var(--blue)}.sn3.r{background:var(--red)}.sn3.p{background:var(--purple)}
+.sb3{font-size:.9rem;color:var(--text2);line-height:1.65}
+.sb3 strong{color:var(--text);font-weight:700}
+.sb3 code{font-family:var(--mono);font-size:12px;background:#f1f5f9;border:1px solid var(--border);padding:1px 6px;border-radius:4px;color:var(--purple)}
+.key{display:inline-block;background:var(--text);color:#fff;font-family:var(--mono);font-size:11px;font-weight:700;padding:2px 9px;border-radius:5px;margin:0 2px;box-shadow:0 2px 0 #64748b}
+
+/* ── CALLOUT ── */
+.co{border-radius:14px;padding:1rem 1.2rem;margin-bottom:1rem;display:flex;gap:11px;align-items:flex-start}
+.co-ico{font-size:1.35rem;flex-shrink:0;margin-top:1px}
+.co h4{font-size:.9rem;font-weight:800;margin-bottom:.2rem}
+.co p{font-size:.855rem;line-height:1.7;margin:0}
+.co-o{background:var(--orange-l);border:2px solid var(--orange-b)}.co-o h4{color:var(--orange)}.co-o p{color:#7c2d12}
+.co-r{background:var(--red-l);border:2px solid var(--red-b)}.co-r h4{color:var(--red)}.co-r p{color:#991b1b}
+.co-g{background:var(--green-l);border:2px solid var(--green-b)}.co-g h4{color:var(--green)}.co-g p{color:#166534}
+.co-b{background:var(--blue-l);border:2px solid var(--blue-b)}.co-b h4{color:#1d4ed8}.co-b p{color:#1e40af}
+.co-p{background:var(--purple-l);border:2px solid var(--purple-b)}.co-p h4{color:var(--purple)}.co-p p{color:#4c1d95}
+.co-a{background:var(--amber-l);border:2px solid var(--amber-b)}.co-a h4{color:var(--amber)}.co-a p{color:#92400e}
+
+/* ── INTERSECTION DEMO ── */
+.inter-demo{background:var(--white);border:2px solid var(--orange-b);border-radius:16px;padding:1.5rem;margin-bottom:1rem}
+.inter-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem}
+.inter-box{background:#f8fafc;border:2px solid var(--border);border-radius:12px;padding:1.1rem;text-align:center;position:relative}
+.inter-box h4{font-size:.9rem;font-weight:800;margin-bottom:.5rem}
+.road-h{display:flex;justify-content:center;align-items:center;gap:6px;margin:.5rem 0}
+.road-v{display:flex;flex-direction:column;align-items:center;gap:4px;margin:.5rem 0}
+.car{font-size:1.4rem;display:inline-block}
+.car.blocked{filter:grayscale(.5);opacity:.7}
+.road-line{width:40px;height:3px;background:var(--border);border-radius:2px}
+.road-line-v{width:3px;height:20px;background:var(--border);border-radius:2px}
+.intersection{width:32px;height:32px;border-radius:8px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:800;border:2px solid}
+.int-free{border-color:var(--green-b);color:var(--green)}
+.int-locked{border-color:var(--red-b);color:var(--red);background:var(--red-l)}
+
+/* ── 4 CONDITIONS GRID ── */
+.cond-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:1rem}
+.cond-card{border-radius:14px;padding:1.2rem;border:2px solid;text-align:center}
+.cc1{background:#fff7ed;border-color:var(--orange-b)}.cc1 .cnum{color:var(--orange)}
+.cc2{background:var(--red-l);border-color:var(--red-b)}.cc2 .cnum{color:var(--red)}
+.cc3{background:var(--purple-l);border-color:var(--purple-b)}.cc3 .cnum{color:var(--purple)}
+.cc4{background:var(--amber-l);border-color:var(--amber-b)}.cc4 .cnum{color:var(--amber)}
+.cnum{font-size:2rem;font-weight:900;line-height:1;margin-bottom:.35rem;display:block}
+.cname{font-size:.95rem;font-weight:800;color:var(--text);margin-bottom:.35rem}
+.cdesc{font-size:.82rem;color:var(--text2);line-height:1.65}
+.cex{font-size:.78rem;font-style:italic;color:var(--text3);margin-top:.4rem}
+
+/* ── DEADLOCK SIMULATION ── */
+.dl-sim{background:var(--white);border:2px solid var(--border);border-radius:16px;padding:1.5rem;margin-bottom:1rem}
+.dl-sim-title{font-size:1rem;font-weight:800;color:var(--text);margin-bottom:1rem}
+.dl-arena{display:flex;align-items:center;justify-content:space-around;padding:1rem;background:#f8fafc;border-radius:12px;border:2px solid var(--border);flex-wrap:wrap;gap:12px;min-height:160px}
+.process-node{display:flex;flex-direction:column;align-items:center;gap:6px}
+.pn-circle{width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:900;border:3px solid;transition:all .4s}
+.pn-label{font-size:11px;font-weight:700;color:var(--text2);text-align:center}
+.res-box{width:50px;height:50px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:900;border:3px solid;transition:all .4s}
+.arrow-area{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;font-weight:700;color:var(--text3)}
+.arrow-area .arr{font-size:1.4rem}
+.dl-state{padding:.75rem 1rem;border-radius:8px;background:#f8fafc;border:2px solid var(--border);font-size:.875rem;font-weight:700;color:var(--text2);margin:.75rem 0}
+.dl-btns{display:flex;gap:8px;flex-wrap:wrap}
+.dl-btn{font-family:var(--body);font-size:13px;font-weight:700;padding:8px 16px;border-radius:50px;border:2px solid;cursor:pointer;transition:all .2s}
+
+/* ── WINDOWS MOCKUP ── */
+.win-mockup{background:#f0f4ff;border:2px solid #c7d2fe;border-radius:12px;overflow:hidden;margin-bottom:1rem;box-shadow:0 4px 18px rgba(0,0,0,.07)}
+.win-titlebar{background:#1e3a8a;padding:.55rem 1rem;display:flex;align-items:center;gap:8px}
+.wd{width:10px;height:10px;border-radius:50%}
+.wd1{background:#f87171}.wd2{background:#fbbf24}.wd3{background:#34d399}
+.win-lbl{font-size:12px;font-weight:700;color:#bfdbfe;margin-left:6px;font-family:var(--mono)}
+.win-body{padding:1.25rem}
+
+/* Not responding popup */
+.not-resp{background:var(--white);border:2px solid #cbd5e1;border-radius:10px;padding:1.1rem 1.3rem;max-width:340px;margin:0 auto}
+.nr-title{font-size:14px;font-weight:800;color:var(--text);margin-bottom:.4rem;display:flex;align-items:center;gap:8px}
+.nr-ico{font-size:1.3rem}
+.nr-body{font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:.85rem}
+.nr-btns{display:flex;gap:8px}
+.nr-btn{font-size:12px;font-weight:700;padding:7px 16px;border-radius:6px;border:2px solid;cursor:pointer;transition:all .15s}
+.nr-wait{background:var(--white);border-color:var(--border);color:var(--text2)}
+.nr-end{background:var(--red-l);border-color:var(--red-b);color:var(--red);font-weight:800}
+
+/* ── KEYBOARD SHORTCUTS ── */
+.shortcut-grid{display:grid;gap:.65rem;margin-bottom:1rem}
+.sc-row{display:flex;align-items:center;gap:14px;padding:1rem 1.1rem;background:var(--white);border:2px solid var(--border);border-radius:12px;transition:border-color .2s}
+.sc-row:hover{border-color:var(--orange-b)}
+.sc-keys{display:flex;align-items:center;gap:4px;flex-shrink:0;min-width:200px}
+.sc-plus{font-size:14px;font-weight:900;color:var(--text3)}
+.sc-info{font-size:.9rem;color:var(--text2);line-height:1.55}
+.sc-info strong{color:var(--text);font-weight:700}
+.sc-badge{font-size:10px;font-weight:800;padding:3px 8px;border-radius:50px;text-transform:uppercase;letter-spacing:.3px;margin-left:auto;flex-shrink:0}
+.sb-must{background:var(--red-l);color:var(--red);border:1px solid var(--red-b)}
+.sb-good{background:var(--green-l);color:var(--green);border:1px solid var(--green-b)}
+.sb-tip{background:var(--blue-l);color:var(--blue);border:1px solid var(--blue-b)}
+
+/* ── DECISION TREE ── */
+.dtree{display:grid;gap:.75rem;margin-bottom:1rem}
+.dt-row{display:flex;gap:12px;align-items:flex-start;padding:1rem 1.1rem;border-radius:12px;border:2px solid}
+.dt-q{background:var(--blue-l);border-color:var(--blue-b)}
+.dt-q .dt-icon{color:#1d4ed8;font-size:1.2rem;flex-shrink:0;margin-top:1px}
+.dt-q .dt-text{font-size:.9rem;font-weight:700;color:#1e40af;line-height:1.6}
+.dt-y{background:var(--green-l);border-color:var(--green-b)}
+.dt-y .dt-icon{color:var(--green);font-size:1.1rem;flex-shrink:0;margin-top:2px}
+.dt-y .dt-text{font-size:.88rem;font-weight:600;color:#166534;line-height:1.6}
+.dt-n{background:var(--amber-l);border-color:var(--amber-b)}
+.dt-n .dt-icon{color:var(--amber);font-size:1.1rem;flex-shrink:0;margin-top:2px}
+.dt-n .dt-text{font-size:.88rem;font-weight:600;color:#78350f;line-height:1.6}
+.dt-z{background:var(--red-l);border-color:var(--red-b)}
+.dt-z .dt-icon{color:var(--red);font-size:1.2rem;flex-shrink:0;margin-top:1px}
+.dt-z .dt-text{font-size:.9rem;font-weight:700;color:#991b1b;line-height:1.6}
+
+/* ── BEFORE/AFTER ── */
+.ba-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+@media(max-width:500px){.ba-grid{grid-template-columns:1fr}}
+.ba{border-radius:14px;padding:1.2rem;border:2px solid}
+.ba-b{background:var(--red-l);border-color:var(--red-b)}.ba-b h4{color:var(--red);font-weight:800;font-size:.9rem;margin-bottom:.5rem}
+.ba-a{background:var(--green-l);border-color:var(--green-b)}.ba-a h4{color:var(--green);font-weight:800;font-size:.9rem;margin-bottom:.5rem}
+.ba-item{font-size:.875rem;color:var(--text2);line-height:1.9;display:flex;gap:6px}
+.ba-b .ba-item::before{content:'✗';color:var(--red);font-weight:900;flex-shrink:0}
+.ba-a .ba-item::before{content:'✓';color:var(--green);font-weight:900;flex-shrink:0}
+
+/* ── QUIZ ── */
+.qprog{display:flex;gap:6px;margin-bottom:1.25rem}
+.qpd{height:7px;flex:1;border-radius:4px;background:var(--border);transition:background .3s}
+.qpd.done{background:var(--green)}.qpd.curr{background:var(--orange)}
+.qctr{font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:.6rem}
+.qtext{font-size:1.05rem;font-weight:800;color:var(--text);margin-bottom:1rem;line-height:1.5}
+.qopts{display:grid;gap:8px}
+.qo{background:var(--white);border:2px solid var(--border);border-radius:10px;padding:12px 16px;font-size:.9rem;font-weight:600;color:var(--text);cursor:pointer;text-align:left;font-family:var(--body);transition:all .15s;display:flex;gap:10px;align-items:center}
+.qo .ql{font-weight:900;color:var(--text3);min-width:18px;flex-shrink:0}
+.qo:hover:not(:disabled){border-color:var(--orange-b);background:var(--orange-l);color:var(--orange)}
+.qo.ok{background:var(--green-l);border-color:var(--green-b);color:var(--green)}.qo.ok .ql{color:var(--green)}
+.qo.no{background:var(--red-l);border-color:var(--red-b);color:var(--red)}.qo.no .ql{color:var(--red)}
+.qfb{margin-top:.85rem;padding:1rem 1.2rem;border-radius:12px;font-size:.9rem;line-height:1.7;font-weight:600}
+.qfb.ok{background:var(--green-l);border:2px solid var(--green-b);color:#065f46}
+.qfb.no{background:var(--red-l);border:2px solid var(--red-b);color:#991b1b}
+.qfb strong{display:block;font-size:1rem;margin-bottom:.25rem}
+.qnext{margin-top:.75rem;font-weight:800;font-size:13px;padding:10px 24px;border:2px solid var(--orange-b);border-radius:50px;background:var(--orange-l);color:var(--orange);cursor:pointer;transition:all .2s}
+.qnext:hover{background:var(--orange);color:#fff}
+.score-wrap{text-align:center;padding:2.5rem;background:linear-gradient(135deg,var(--orange-l),var(--red-l));border:2px solid var(--orange-b);border-radius:16px}
+.score-big{font-size:4.5rem;font-weight:900;line-height:1;margin-bottom:.5rem}
+.score-wrap .msg{font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:.65rem}
+.score-wrap button{font-weight:800;font-size:13px;padding:10px 28px;border:2px solid var(--orange-b);border-radius:50px;background:var(--white);color:var(--orange);cursor:pointer;transition:all .2s}
+.score-wrap button:hover{background:var(--orange);color:#fff}
+
+/* ── REVEAL ── */
+.rv{opacity:0;transform:translateY(18px);transition:opacity .5s,transform .5s}
+.rv.vi{opacity:1;transform:none}
+
+footer{text-align:center;padding:2.5rem;background:var(--white);border-top:2px solid var(--border);font-size:13px;font-weight:700;color:var(--text3);letter-spacing:1px;text-transform:uppercase}
+
+@media(max-width:600px){
+  .hero h1{font-size:2.1rem}
+  .g2,.g3,.g4{grid-template-columns:1fr}
+  .analogy{flex-direction:column}
+  .inter-grid{grid-template-columns:1fr}
+  .sc-row{flex-wrap:wrap}.sc-keys{min-width:auto}
+}
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="hero-badge">Buổi 7 · Nguyên Lý Hệ Điều Hành</div>
+    <h1>Deadlock —<span class="l2"><span class="y">Kẹt Xe Ở Ngã Tư</span> Máy Tính</span></h1>
+    <p class="hero-sub">Học đơn giản — hiểu Deadlock là gì, 4 điều kiện nó xảy ra, cách phòng tránh và quan trọng nhất: biết xử lý khi máy bị treo, đứng hình.</p>
+    <div class="hero-chips">
+      <a href="#p1" class="hc">🚗 Deadlock là gì?</a>
+      <a href="#p2" class="hc">4️⃣ Bốn điều kiện</a>
+      <a href="#p3" class="hc">🛡️ Cách xử lý</a>
+      <a href="#p4" class="hc">🔧 Thực hành</a>
+      <a href="#p5" class="hc">📝 Quiz</a>
+    </div>
+  </div>
+  <div class="hero-wave"></div>
+</header>
+
+<nav class="snav">
+  <a href="#p1" class="on">🚗 Deadlock</a>
+  <a href="#p2">4️⃣ Bốn điều kiện</a>
+  <a href="#p3">🛡️ Xử lý</a>
+  <a href="#p4">🔧 Thực hành</a>
+  <a href="#p5">📝 Quiz</a>
+</nav>
+
+<div class="page">
+
+<!-- ═══════════════════════════════
+     P1 — DEADLOCK LÀ GÌ?
+═══════════════════════════════ -->
+<div class="sep" style="margin-top:0"></div>
+<section id="p1" class="section">
+  <div class="sh rv">
+    <div class="sh-num sn-o">1</div>
+    <h2>Deadlock —<br>Bế tắc hệ thống là gì?</h2>
+    <p>Hiểu qua ví dụ đời thực rồi mới vào khái niệm kỹ thuật — dễ hơn rất nhiều!</p>
+  </div>
+
+  <!-- Analogy kẹt xe -->
+  <div class="analogy rv">
+    <div class="analogy-ico">🚦</div>
+    <div>
+      <h4>Tưởng tượng ngã tư bị kẹt xe hoàn toàn:</h4>
+      <p>4 chiếc xe đến ngã tư cùng lúc. Xe A chờ xe B đi trước. Xe B chờ xe C. Xe C chờ xe D. Xe D chờ xe A. <strong>Không ai nhường ai → tất cả đứng im mãi mãi</strong>. Đây chính là Deadlock!</p>
+      <p style="margin-top:.4rem">Trong máy tính: 4 tiến trình chờ nhau giữ tài nguyên → không ai chịu nhả → hệ thống bị <strong>đứng hình</strong>.</p>
+    </div>
+  </div>
+
+  <!-- Demo ngã tư -->
+  <div class="inter-demo rv">
+    <p style="font-size:.9rem;font-weight:800;color:var(--text);margin-bottom:.75rem">🔴 Mô phỏng kẹt xe ngã tư → Deadlock</p>
+    <div class="inter-grid">
+      <div class="inter-box">
+        <h4 style="color:var(--green)">✅ Giao thông bình thường</h4>
+        <div class="road-h">
+          <span class="car">🚗</span>
+          <div class="road-line"></div>
+          <div class="intersection int-free">OK</div>
+          <div class="road-line"></div>
+          <span class="car">🚙</span>
+        </div>
+        <div style="display:flex;justify-content:center">
+          <div class="road-line-v"></div>
+        </div>
+        <p style="font-size:.8rem;color:var(--text2);margin-top:.25rem">Có nhường đường → xe lần lượt đi được</p>
+      </div>
+      <div class="inter-box" style="background:var(--red-l);border-color:var(--red-b)">
+        <h4 style="color:var(--red)">💥 Deadlock — Kẹt hoàn toàn</h4>
+        <div class="road-h" style="gap:2px">
+          <span class="car blocked">🚗</span>
+          <div class="road-line" style="background:var(--red-b)"></div>
+          <div class="intersection int-locked">💥</div>
+          <div class="road-line" style="background:var(--red-b)"></div>
+          <span class="car blocked">🚙</span>
+        </div>
+        <div style="display:flex;justify-content:center">
+          <div class="road-line-v" style="background:var(--red-b)"></div>
+        </div>
+        <p style="font-size:.8rem;color:var(--red);margin-top:.25rem;font-weight:700">Không ai nhường → kẹt mãi mãi!</p>
+      </div>
+    </div>
+    <div class="co co-o" style="margin-bottom:0">
+      <span class="co-ico">💡</span>
+      <div><h4>Dịch sang ngôn ngữ máy tính</h4><p>"Xe" = Tiến trình (Process). "Ngã tư / làn đường" = Tài nguyên (Resource): máy in, file, vùng RAM, kết nối mạng... Deadlock = Các tiến trình chờ nhau giữ tài nguyên mãi mãi, không ai chịu nhả.</p></div>
+    </div>
+  </div>
+
+  <!-- Ví dụ thực tế máy tính -->
+  <div class="card rv">
+    <h3>💻 Ví dụ Deadlock trong thực tế máy tính</h3>
+    <div class="g2" style="margin-bottom:.75rem">
+      <div class="card card-r" style="margin-bottom:0">
+        <h3>Tình huống:</h3>
+        <p>Tiến trình <strong>A</strong> đang giữ <strong>File Excel</strong>, đang chờ dùng <strong>Máy in</strong>.</p>
+        <p>Tiến trình <strong>B</strong> đang giữ <strong>Máy in</strong>, đang chờ dùng <strong>File Excel</strong>.</p>
+        <p>→ <strong>A chờ B nhả máy in. B chờ A nhả file. Cả hai đứng im mãi mãi!</strong></p>
+      </div>
+      <div class="card card-o" style="margin-bottom:0">
+        <h3>Kết quả:</h3>
+        <p>Cả hai ứng dụng <strong>Not Responding</strong>.</p>
+        <p>Máy in <strong>không in được</strong>.</p>
+        <p>File Excel <strong>không lưu được</strong>.</p>
+        <p>Máy có vẻ <strong>"đứng hình"</strong> — thực ra 2 tiến trình đang chờ nhau trong vô tận.</p>
+      </div>
+    </div>
+    <div class="co co-b" style="margin-bottom:0">
+      <span class="co-ico">📌</span>
+      <div><h4>Định nghĩa gọn</h4><p><strong>Deadlock</strong> = Trạng thái một nhóm tiến trình bị <strong>chặn vĩnh viễn</strong> vì mỗi tiến trình đang giữ một tài nguyên và chờ tài nguyên mà tiến trình khác đang giữ — không ai nhường, không ai tiến lên được.</p></div>
+    </div>
+  </div>
+
+  <!-- Demo tương tác -->
+  <div class="dl-sim rv">
+    <div class="dl-sim-title">🎮 Mô phỏng Deadlock — nhấn nút để xem</div>
+    <div class="dl-arena" id="dlArena">
+      <div class="process-node">
+        <div class="pn-circle" id="pA" style="background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8">A</div>
+        <div class="pn-label">Tiến trình A<br><span id="pA-hold">Chưa giữ gì</span></div>
+      </div>
+      <div class="arrow-area" id="arr1"><div class="arr" style="opacity:.3">↔</div><div>—</div></div>
+      <div class="process-node">
+        <div class="res-box" id="rFile" style="background:var(--amber-l);border-color:var(--amber-b)">📄</div>
+        <div class="pn-label">File Excel</div>
+      </div>
+      <div class="arrow-area" id="arr2"><div class="arr" style="opacity:.3">↔</div><div>—</div></div>
+      <div class="process-node">
+        <div class="pn-circle" id="pB" style="background:var(--green-l);border-color:var(--green-b);color:var(--green)">B</div>
+        <div class="pn-label">Tiến trình B<br><span id="pB-hold">Chưa giữ gì</span></div>
+      </div>
+      <div class="process-node" style="grid-column:span 2">
+        <div class="res-box" id="rPrint" style="background:var(--purple-l);border-color:var(--purple-b)">🖨️</div>
+        <div class="pn-label">Máy in</div>
+      </div>
+    </div>
+    <div class="dl-state" id="dlState">Trạng thái: Bình thường — nhấn "Bước 1" để bắt đầu mô phỏng</div>
+    <div class="dl-btns">
+      <button class="dl-btn" style="background:var(--blue-l);border-color:var(--blue-b);color:var(--blue)" onclick="dlStep(1)">Bước 1: A giữ File</button>
+      <button class="dl-btn" style="background:var(--green-l);border-color:var(--green-b);color:var(--green)" onclick="dlStep(2)">Bước 2: B giữ Máy in</button>
+      <button class="dl-btn" style="background:var(--red-l);border-color:var(--red-b);color:var(--red)" onclick="dlStep(3)">Bước 3: Deadlock!</button>
+      <button class="dl-btn" style="background:#f1f5f9;border-color:var(--border);color:var(--text2)" onclick="dlStep(0)">↺ Reset</button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════
+     P2 — BỐN ĐIỀU KIỆN
+═══════════════════════════════ -->
+<div class="sep"></div>
+<section id="p2" class="section">
+  <div class="sh rv">
+    <div class="sh-num sn-r">2</div>
+    <h2>4 Điều kiện<br><span style="color:var(--red)">xảy ra Deadlock</span></h2>
+    <p>Deadlock chỉ xảy ra khi <strong>cả 4 điều kiện</strong> này cùng có mặt. Thiếu 1 điều kiện → không có Deadlock!</p>
+  </div>
+
+  <div class="co co-r rv" style="margin-bottom:1.25rem">
+    <span class="co-ico">⚠️</span>
+    <div><h4>Quy tắc vàng cần nhớ</h4><p>4 điều kiện này giống như 4 mắt xích của một cái xích — chỉ cần <strong>phá vỡ 1 mắt xích</strong>, chuỗi Deadlock bị bẻ gãy và hệ thống tiếp tục chạy được.</p></div>
+  </div>
+
+  <div class="cond-grid rv">
+    <div class="cond-card cc1">
+      <span class="cnum">①</span>
+      <div class="cname">Mutual Exclusion</div>
+      <div style="font-size:.78rem;font-weight:700;color:var(--orange);margin-bottom:.4rem">"Độc quyền tài nguyên"</div>
+      <div class="cdesc">Tài nguyên chỉ được <strong>1 tiến trình dùng tại 1 thời điểm</strong>. Tiến trình khác muốn dùng phải chờ.</div>
+      <div class="cex">Ví dụ: Máy in chỉ in cho 1 người tại 1 lúc.</div>
+    </div>
+    <div class="cond-card cc2">
+      <span class="cnum">②</span>
+      <div class="cname">Hold and Wait</div>
+      <div style="font-size:.78rem;font-weight:700;color:var(--red);margin-bottom:.4rem">"Vừa giữ vừa chờ"</div>
+      <div class="cdesc">Tiến trình đang <strong>giữ ít nhất 1 tài nguyên</strong> và đồng thời <strong>chờ thêm tài nguyên khác</strong>.</div>
+      <div class="cex">Ví dụ: A giữ File, nhưng cần thêm Máy in mới làm được.</div>
+    </div>
+    <div class="cond-card cc3">
+      <span class="cnum">③</span>
+      <div class="cname">No Preemption</div>
+      <div style="font-size:.78rem;font-weight:700;color:var(--purple);margin-bottom:.4rem">"Không thể cướp"</div>
+      <div class="cdesc">Tài nguyên <strong>không thể bị lấy lại bắt buộc</strong>. Chỉ tiến trình đang giữ mới tự nguyện nhả ra.</div>
+      <div class="cex">Ví dụ: Không ai có thể cướp máy in từ tay A — chỉ A mới nhả được.</div>
+    </div>
+    <div class="cond-card cc4">
+      <span class="cnum">④</span>
+      <div class="cname">Circular Wait</div>
+      <div style="font-size:.78rem;font-weight:700;color:var(--amber);margin-bottom:.4rem">"Chờ vòng tròn"</div>
+      <div class="cdesc">Có một <strong>chuỗi vòng tròn</strong>: A chờ B, B chờ C, C chờ A → <strong>vòng lặp không có điểm dừng</strong>.</div>
+      <div class="cex">Ví dụ: A→chờ B→chờ C→chờ A. Giống kẹt xe ngã tư.</div>
+    </div>
+  </div>
+
+  <!-- Ví dụ tổng hợp 4 điều kiện -->
+  <div class="card rv">
+    <h3>📖 Ví dụ thực tế: Tại sao in tài liệu bị treo?</h3>
+    <div class="steps">
+      <div class="step"><div class="sn3">①</div><div class="sb3"><strong>Mutual Exclusion:</strong> Máy in chỉ nhận lệnh từ 1 ứng dụng tại 1 thời điểm → Word đang in thì Excel phải chờ.</div></div>
+      <div class="step"><div class="sn3">②</div><div class="sb3"><strong>Hold and Wait:</strong> Word đang giữ máy in và chờ file được Excel mở. Excel đang giữ file và chờ máy in.</div></div>
+      <div class="step"><div class="sn3">③</div><div class="sb3"><strong>No Preemption:</strong> Không thể "giật" máy in từ Word để cho Excel dùng. Phải chờ Word tự nhả.</div></div>
+      <div class="step rs" style="border-left-color:var(--red)"><div class="sn3 r">④</div><div class="sb3"><strong>Circular Wait:</strong> Word chờ Excel (nhả file). Excel chờ Word (nhả máy in). → Vòng tròn bất tận → <strong>Deadlock!</strong></div></div>
+    </div>
+  </div>
+
+  <!-- Mẹo nhớ -->
+  <div class="card card-a rv">
+    <h3>🧠 Mẹo nhớ 4 điều kiện bằng từ khóa</h3>
+    <div class="g4" style="margin-bottom:0">
+      <div style="text-align:center;padding:.75rem;background:var(--white);border-radius:10px;border:2px solid var(--amber-b)">
+        <div style="font-size:1.6rem;font-weight:900;color:var(--orange)">MH</div>
+        <div style="font-size:.8rem;font-weight:700;color:var(--text2)">Mutual exclusion<br><strong>Hold and wait</strong></div>
+      </div>
+      <div style="text-align:center;padding:.75rem;background:var(--white);border-radius:10px;border:2px solid var(--amber-b)">
+        <div style="font-size:1.6rem;font-weight:900;color:var(--red)">NC</div>
+        <div style="font-size:.8rem;font-weight:700;color:var(--text2)">No preemption<br><strong>Circular wait</strong></div>
+      </div>
+      <div style="text-align:center;padding:.75rem;background:var(--white);border-radius:10px;border:2px solid var(--amber-b)">
+        <div style="font-size:1.2rem;font-weight:900;color:var(--amber)">→</div>
+        <div style="font-size:.8rem;font-weight:700;color:var(--text2)">Nhớ tắt:<br><strong>"Mình Hay Nói Chậm"</strong></div>
+      </div>
+      <div style="text-align:center;padding:.75rem;background:var(--amber-l);border-radius:10px;border:2px solid var(--amber-b)">
+        <div style="font-size:.95rem;font-weight:800;color:var(--amber)">Phá 1 trong 4<br>→ Hết Deadlock!</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════
+     P3 — CÁCH XỬ LÝ
+═══════════════════════════════ -->
+<div class="sep"></div>
+<section id="p3" class="section">
+  <div class="sh rv">
+    <div class="sh-num sn-g">3</div>
+    <h2>Cách phòng ngừa<br><span style="color:var(--green)">và xử lý Deadlock</span></h2>
+    <p>4 chiến lược — từ phòng ngừa trước đến xử lý sau khi đã xảy ra. Mỗi chiến lược phá vỡ 1 điều kiện.</p>
+  </div>
+
+  <div class="g2 rv">
+    <div class="card card-g">
+      <h3>🛡️ Chiến lược 1 — Phòng ngừa (Prevention)</h3>
+      <p>Thiết kế hệ thống sao cho <strong>ít nhất 1 trong 4 điều kiện không bao giờ xảy ra</strong>.</p>
+      <div class="steps" style="margin-top:.5rem">
+        <div class="step"><div class="sn3 g">A</div><div class="sb3"><strong>Phá điều kiện ②:</strong> Buộc tiến trình phải yêu cầu <strong>tất cả tài nguyên cần thiết ngay từ đầu</strong>, không xin thêm dần dần.</div></div>
+        <div class="step"><div class="sn3 g">B</div><div class="sb3"><strong>Phá điều kiện ③:</strong> Nếu tiến trình cần thêm tài nguyên nhưng bị chờ lâu → <strong>buộc nó nhả tất cả</strong> rồi xin lại từ đầu.</div></div>
+        <div class="step"><div class="sn3 g">C</div><div class="sb3"><strong>Phá điều kiện ④:</strong> Đánh số thứ tự tài nguyên, các tiến trình chỉ được xin theo <strong>thứ tự tăng dần</strong> → không bao giờ có vòng tròn.</div></div>
+      </div>
+    </div>
+    <div class="card card-b">
+      <h3>🔍 Chiến lược 2 — Tránh né (Avoidance)</h3>
+      <p>HĐH <strong>kiểm tra trước</strong> khi cấp tài nguyên: nếu cấp thêm dẫn đến Deadlock → từ chối cấp.</p>
+      <div class="co co-b" style="margin-top:.5rem;margin-bottom:0">
+        <span class="co-ico">🏦</span>
+        <div><h4>Thuật toán Banker's Algorithm</h4><p>Giống ngân hàng: trước khi cho vay tiền (cấp tài nguyên), kiểm tra xem nếu cho vay thì còn đủ để trả được không. Nếu không → từ chối cho vay.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="g2 rv">
+    <div class="card card-a">
+      <h3>🔎 Chiến lược 3 — Phát hiện & Phục hồi (Detection & Recovery)</h3>
+      <p>Cho phép Deadlock xảy ra, nhưng <strong>định kỳ quét</strong> để phát hiện và xử lý:</p>
+      <div class="steps" style="margin-top:.5rem">
+        <div class="step"><div class="sn3 a">1</div><div class="sb3"><strong>Phát hiện:</strong> HĐH định kỳ kiểm tra xem có vòng chờ vòng tròn không.</div></div>
+        <div class="step"><div class="sn3 a">2</div><div class="sb3"><strong>Kill tiến trình:</strong> Khi phát hiện Deadlock → kill 1 hoặc nhiều tiến trình trong vòng đó để phá vỡ vòng tròn.</div></div>
+        <div class="step"><div class="sn3 g">3</div><div class="sb3"><strong>Roll back:</strong> Quay tiến trình về trạng thái trước khi bị Deadlock (như Ctrl+Z).</div></div>
+      </div>
+    </div>
+    <div class="card card-o">
+      <h3>🙈 Chiến lược 4 — Bỏ qua (Ostrich Algorithm)</h3>
+      <p>Giả vờ Deadlock <strong>không tồn tại</strong>. Nghe có vẻ lạ nhưng đây là cách <strong>Windows và Linux thường dùng</strong>!</p>
+      <div class="co co-a" style="margin-bottom:0;margin-top:.5rem">
+        <span class="co-ico">🐦</span>
+        <div><h4>Tại sao Windows lại "bỏ qua"?</h4><p>Deadlock thực sự rất <strong>hiếm</strong> trong thực tế. Chi phí để phòng ngừa 100% rất cao. Vì vậy Windows chọn cách: khi xảy ra thì người dùng <strong>tự End Task</strong> hoặc <strong>restart máy</strong> — đơn giản và hiệu quả!</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Windows xử lý thực tế -->
+  <div class="card rv">
+    <h3>💻 Windows xử lý Deadlock/Treo máy thực tế ra sao?</h3>
+    <div class="steps">
+      <div class="step"><div class="sn3">1</div><div class="sb3">App bị treo → Windows phát hiện app <strong>không phản hồi</strong> trong vài giây.</div></div>
+      <div class="step"><div class="sn3">2</div><div class="sb3">Windows hiện thông báo <strong>"Not Responding"</strong> trên thanh tiêu đề của app.</div></div>
+      <div class="step"><div class="sn3">3</div><div class="sb3">Người dùng có thể <strong>chờ tiếp</strong> (đôi khi app tự thoát ra) hoặc chọn <strong>"End Now"</strong>.</div></div>
+      <div class="step"><div class="sn3 g">4</div><div class="sb3">Khi click "End Now" → Windows <strong>force kill</strong> tiến trình đó, giải phóng toàn bộ tài nguyên nó đang giữ.</div></div>
+      <div class="step"><div class="sn3 g">5</div><div class="sb3">Các tiến trình khác đang chờ tài nguyên đó được <strong>giải phóng</strong> → tiếp tục chạy bình thường.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════
+     P4 — THỰC HÀNH
+═══════════════════════════════ -->
+<div class="sep"></div>
+<section id="p4" class="section">
+  <div class="sh rv">
+    <div class="sh-num sn-p">4</div>
+    <h2>Thực hành —<br><span style="color:var(--purple)">Xử lý máy treo</span></h2>
+    <p>Học đúng thứ tự xử lý — từ nhẹ đến nặng. Đừng vội nhấn nút nguồn!</p>
+  </div>
+
+  <!-- Not responding mockup -->
+  <div class="win-mockup rv">
+    <div class="win-titlebar">
+      <div class="wd wd1"></div><div class="wd wd2"></div><div class="wd wd3"></div>
+      <div class="win-lbl">Mô phỏng cửa sổ App bị treo</div>
+    </div>
+    <div class="win-body" style="display:flex;justify-content:center;padding:1.5rem">
+      <div class="not-resp" id="nrDialog">
+        <div class="nr-title">
+          <span class="nr-ico">⚠️</span>
+          <span>Microsoft Word — Not Responding</span>
+        </div>
+        <div class="nr-body">
+          Chương trình này đã ngừng phản hồi.<br>
+          Bạn muốn đóng chương trình và mất mọi dữ liệu chưa lưu không?
+        </div>
+        <div class="nr-btns">
+          <button class="nr-btn nr-wait" onclick="nrWait()">Chờ xem có thoát không</button>
+          <button class="nr-btn nr-end" onclick="nrEnd()">End Now — Đóng ngay</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="rv" style="font-size:.875rem;color:var(--text2);text-align:center;margin-bottom:1rem;font-weight:600">👆 Nhấn vào các nút để xem điều gì xảy ra</p>
+
+  <!-- Phím tắt xử lý -->
+  <div class="card rv">
+    <h3>⌨️ Các phím tắt cứu máy treo — từ nhẹ đến nặng</h3>
+    <div class="shortcut-grid">
+      <div class="sc-row">
+        <div class="sc-keys">
+          <span class="key">Ctrl</span><span class="sc-plus">+</span>
+          <span class="key">Alt</span><span class="sc-plus">+</span>
+          <span class="key">Del</span>
+        </div>
+        <div class="sc-info"><strong>Màn hình khẩn cấp</strong> — Luôn hoạt động, kể cả khi máy đứng hình nặng. Từ đây chọn Task Manager, Lock, Sign out, Shutdown.</div>
+        <span class="sc-badge sb-must">Bắt buộc nhớ</span>
+      </div>
+      <div class="sc-row">
+        <div class="sc-keys">
+          <span class="key">Ctrl</span><span class="sc-plus">+</span>
+          <span class="key">Shift</span><span class="sc-plus">+</span>
+          <span class="key">Esc</span>
+        </div>
+        <div class="sc-info"><strong>Mở Task Manager trực tiếp</strong> — Nhanh nhất. Dùng khi app bị treo nhưng máy vẫn còn phản hồi bàn phím.</div>
+        <span class="sc-badge sb-must">Bắt buộc nhớ</span>
+      </div>
+      <div class="sc-row">
+        <div class="sc-keys">
+          <span class="key">Alt</span><span class="sc-plus">+</span>
+          <span class="key">F4</span>
+        </div>
+        <div class="sc-info"><strong>Đóng cửa sổ đang mở</strong> — Thử dùng khi app không phản hồi chuột. Đôi khi hoạt động khi chuột không hoạt động được.</div>
+        <span class="sc-badge sb-good">Nên biết</span>
+      </div>
+      <div class="sc-row">
+        <div class="sc-keys">
+          <span class="key">Win</span><span class="sc-plus">+</span>
+          <span class="key">D</span>
+        </div>
+        <div class="sc-info"><strong>Về Desktop</strong> — Thu nhỏ tất cả cửa sổ. Giúp thoát ra khỏi app treo để mở Task Manager từ Taskbar.</div>
+        <span class="sc-badge sb-good">Nên biết</span>
+      </div>
+      <div class="sc-row">
+        <div class="sc-keys">
+          <span class="key">Win</span><span class="sc-plus">+</span>
+          <span class="key">Tab</span>
+        </div>
+        <div class="sc-info"><strong>Task View</strong> — Xem tất cả cửa sổ đang mở. Giúp chuyển sang cửa sổ khác khi app bị treo chiếm màn hình.</div>
+        <span class="sc-badge sb-tip">Mẹo hay</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quy trình xử lý theo thứ tự -->
+  <div class="card rv">
+    <h3>📋 Quy trình xử lý máy treo — làm đúng thứ tự, đừng vội tắt nguồn!</h3>
+
+    <div class="dtree">
+      <div class="dt-row dt-q">
+        <div class="dt-icon">❓</div>
+        <div class="dt-text"><strong>Máy treo / App Not Responding?</strong><br>Chuột không di chuyển hoặc app không phản hồi click</div>
+      </div>
+      <div style="display:flex;gap:4px;align-items:center;padding-left:1rem"><span style="font-size:1.2rem">↓</span><span style="font-size:.8rem;color:var(--text3);font-weight:700;margin-left:4px">Thử cách 1 trước</span></div>
+      <div class="dt-row dt-y">
+        <div class="dt-icon">1️⃣</div>
+        <div class="dt-text"><strong>Chờ 1–2 phút</strong> — Đôi khi app đang xử lý việc nặng (lưu file lớn, render...), không phải Deadlock thật. Hãy chờ trước khi can thiệp mạnh tay.</div>
+      </div>
+      <div style="display:flex;gap:4px;align-items:center;padding-left:1rem"><span style="font-size:1.2rem">↓</span><span style="font-size:.8rem;color:var(--text3);font-weight:700;margin-left:4px">Vẫn treo? Thử cách 2</span></div>
+      <div class="dt-row dt-y">
+        <div class="dt-icon">2️⃣</div>
+        <div class="dt-text"><strong>Nhấn <span class="key" style="font-size:11px">Ctrl</span>+<span class="key" style="font-size:11px">Shift</span>+<span class="key" style="font-size:11px">Esc</span></strong> → Task Manager → Tìm app treo → <strong>End Task</strong>. Cách nhanh nhất và an toàn nhất.</div>
+      </div>
+      <div style="display:flex;gap:4px;align-items:center;padding-left:1rem"><span style="font-size:1.2rem">↓</span><span style="font-size:.8rem;color:var(--text3);font-weight:700;margin-left:4px">Task Manager không mở được? Thử cách 3</span></div>
+      <div class="dt-row dt-n">
+        <div class="dt-icon">3️⃣</div>
+        <div class="dt-text"><strong>Nhấn <span class="key" style="font-size:11px">Ctrl</span>+<span class="key" style="font-size:11px">Alt</span>+<span class="key" style="font-size:11px">Del</span></strong> → chọn Task Manager hoặc Sign Out. Màn hình này luôn hoạt động ngay cả khi máy treo nặng.</div>
+      </div>
+      <div style="display:flex;gap:4px;align-items:center;padding-left:1rem"><span style="font-size:1.2rem">↓</span><span style="font-size:.8rem;color:var(--text3);font-weight:700;margin-left:4px">Máy hoàn toàn đơ? Bước cuối</span></div>
+      <div class="dt-row dt-z">
+        <div class="dt-icon">4️⃣</div>
+        <div class="dt-text"><strong>Giữ nút nguồn 5–10 giây</strong> để tắt cứng (Hard Reset). Chỉ dùng khi mọi cách trên không được. Dữ liệu chưa lưu sẽ bị mất.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hướng dẫn End Task chi tiết -->
+  <div class="card card-p rv">
+    <h3>🎯 Hướng dẫn chi tiết — End Task trong Task Manager</h3>
+    <div class="steps">
+      <div class="step"><div class="sn3 p">1</div><div class="sb3">Nhấn <span class="key">Ctrl</span>+<span class="key">Shift</span>+<span class="key">Esc</span> để mở Task Manager</div></div>
+      <div class="step"><div class="sn3 p">2</div><div class="sb3">Trong tab <strong>Processes</strong>, tìm app bị treo — thường có chữ <strong>"Not responding"</strong> màu vàng bên cạnh tên.</div></div>
+      <div class="step"><div class="sn3 p">3</div><div class="sb3">Cột <strong>CPU</strong>: app treo thường chiếm 0% CPU (đứng yên) hoặc đôi khi 99–100% (vòng lặp vô tận).</div></div>
+      <div class="step"><div class="sn3 p">4</div><div class="sb3">Click chuột phải vào tên app → chọn <strong>"End task"</strong> (hoặc click chọn rồi nhấn nút End Task ở góc dưới phải).</div></div>
+      <div class="step"><div class="sn3 g">5</div><div class="sb3">Xác nhận → app bị đóng. Windows <strong>thu hồi toàn bộ RAM và tài nguyên</strong> của app đó → máy chạy bình thường trở lại.</div></div>
+    </div>
+    <div class="co co-r" style="margin-top:.75rem;margin-bottom:0">
+      <span class="co-ico">💾</span>
+      <div><h4>Mất dữ liệu chưa lưu — chấp nhận được!</h4><p>End Task làm mất file Word/Excel chưa Ctrl+S. Đây là giá phải trả. Bài học: <strong>Ctrl+S thường xuyên</strong>! Và bật tính năng AutoSave (Windows tự lưu định kỳ mỗi 5–10 phút).</p></div>
+    </div>
+  </div>
+
+  <!-- Bảng so sánh -->
+  <div class="card rv">
+    <h3>⚡ So sánh các cách xử lý máy treo</h3>
+    <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:.875rem">
+      <thead>
+        <tr style="background:#f8fafc">
+          <th style="padding:.65rem 1rem;border-bottom:2px solid var(--border);text-align:left;font-weight:800;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Cách xử lý</th>
+          <th style="padding:.65rem 1rem;border-bottom:2px solid var(--border);text-align:left;font-weight:800;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Khi nào dùng</th>
+          <th style="padding:.65rem 1rem;border-bottom:2px solid var(--border);text-align:left;font-weight:800;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Dữ liệu</th>
+          <th style="padding:.65rem 1rem;border-bottom:2px solid var(--border);text-align:left;font-weight:800;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)">Hiệu quả</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td style="padding:.65rem 1rem;border-bottom:1px solid var(--border);font-weight:700">Chờ app tự thoát</td><td style="padding:.65rem 1rem;border-bottom:1px solid var(--border);color:var(--text2)">App đang xử lý nặng</td><td style="padding:.65rem 1rem;border-bottom:1px solid var(--border);color:var(--green);font-weight:700">Giữ nguyên</td><td style="padding:.65rem 1rem;border-bottom:1px solid var(--border);color:var(--green);font-weight:700">Tốt nhất</td></tr>
+        <tr style="background:#f0fdf4"><td style="padding:.65rem 1rem;border-bottom:1px solid var(--border);font-weight:700;color:var(--green)">End Task (Task Manager)</td><td style="padding:.65rem 1rem;border-bottom:1px solid var(--border);color:var(--text2)">App Not Responding rõ ràng</td><td style="padding:.65rem 1rem;border-bottom:1px solid var(--border);color:var(--amber);font-weight:700">Mất dữ liệu chưa lưu</td><td style="padding:.65rem 1rem;border-bottom:1px solid var(--border);color:var(--green);font-weight:700">Rất tốt ✅</td></tr>
+        <tr><td style="padding:.65rem 1rem;border-bottom:1px solid var(--border);font-weight:700">Ctrl+Alt+Del → Sign out</td><td style="padding:.65rem 1rem;border-bottom:1px solid var(--border);color:var(--text2)">Task Manager không mở được</td><td style="padding:.65rem 1rem;border-bottom:1px solid var(--border);color:var(--amber);font-weight:700">Mất dữ liệu</td><td style="padding:.65rem 1rem;border-bottom:1px solid var(--border);color:var(--blue);font-weight:700">Tốt</td></tr>
+        <tr><td style="padding:.65rem 1rem;border-bottom:1px solid var(--border);font-weight:700">Restart Windows</td><td style="padding:.65rem 1rem;border-bottom:1px solid var(--border);color:var(--text2)">Máy chậm/lạ sau khi dẹp app</td><td style="padding:.65rem 1rem;border-bottom:1px solid var(--border);color:var(--amber);font-weight:700">Mất dữ liệu</td><td style="padding:.65rem 1rem;border-bottom:1px solid var(--border);color:var(--blue);font-weight:700">Tốt</td></tr>
+        <tr style="background:var(--red-l)"><td style="padding:.65rem 1rem;font-weight:700;color:var(--red)">Giữ nút nguồn tắt cứng</td><td style="padding:.65rem 1rem;color:var(--red)">Máy hoàn toàn đơ</td><td style="padding:.65rem 1rem;color:var(--red);font-weight:700">Mất hết — nguy hiểm</td><td style="padding:.65rem 1rem;color:var(--red);font-weight:700">Cực chẳng đã ⚠️</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <!-- Phòng ngừa máy treo -->
+  <div class="card card-t rv">
+    <h3>🛡️ Phòng ngừa máy treo trong tương lai</h3>
+    <div class="g2" style="margin-bottom:0">
+      <div>
+        <div class="co co-g"><span class="co-ico">💾</span><div><h4>Bật AutoSave</h4><p>Word/Excel: File → Options → Save → AutoRecover mỗi <strong>5 phút</strong>. Mất điện hay crash vẫn lấy lại được file.</p></div></div>
+        <div class="co co-b"><span class="co-ico">🧹</span><div><h4>Dọn app khởi động (Startup)</h4><p>Task Manager → tab Startup → Disable app không cần thiết → máy ít bị treo do thiếu RAM hơn.</p></div></div>
+      </div>
+      <div>
+        <div class="co co-a"><span class="co-ico">💽</span><div><h4>Nâng cấp RAM hoặc SSD</h4><p>Máy treo nhiều thường do RAM thiếu hoặc HDD quá chậm khi paging. SSD + thêm RAM giải quyết được đa số trường hợp.</p></div></div>
+        <div class="co co-r"><span class="co-ico">🦠</span><div><h4>Quét virus định kỳ</h4><p>Virus/malware chạy ngầm ăn CPU và RAM → gây treo máy. Chạy Windows Defender (miễn phí) mỗi tuần 1 lần.</p></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════
+     P5 — QUIZ
+═══════════════════════════════ -->
+<div class="sep"></div>
+<section id="p5" class="section">
+  <div class="sh rv">
+    <div class="sh-num sn-b">5</div>
+    <h2>Quiz ôn tập<br><span style="color:var(--blue)">Buổi 7</span></h2>
+    <p>6 câu hỏi — từ lý thuyết đến thực hành. Giải thích chi tiết sau mỗi câu!</p>
+  </div>
+
+  <div class="card rv">
+    <div class="qprog" id="qprog"></div>
+    <div id="qarea"></div>
+  </div>
+</section>
+
+</div>
+<footer>Buổi 7 · Deadlock & Xử Lý Treo Máy · Nguyên Lý Hệ Điều Hành · Trường TC Kinh tế – Kỹ thuật TP. Cần Thơ</footer>
+
+<script>
+/* ── REVEAL ── */
+const ro=new IntersectionObserver(e=>e.forEach(x=>{if(x.isIntersecting)x.target.classList.add('vi')}),{threshold:.07});
+document.querySelectorAll('.rv').forEach(el=>ro.observe(el));
+
+/* ── NAV ── */
+const navAs=document.querySelectorAll('.snav a');
+const sects=document.querySelectorAll('section[id]');
+window.addEventListener('scroll',()=>{
+  let cur='';sects.forEach(s=>{if(window.scrollY>=s.offsetTop-130)cur=s.id});
+  navAs.forEach(a=>a.classList.toggle('on',a.getAttribute('href')==='#'+cur));
+},{passive:true});
+
+/* ── DEADLOCK SIMULATION ── */
+function dlStep(step){
+  const pA=document.getElementById('pA');
+  const pB=document.getElementById('pB');
+  const rFile=document.getElementById('rFile');
+  const rPrint=document.getElementById('rPrint');
+  const arr1=document.getElementById('arr1');
+  const arr2=document.getElementById('arr2');
+  const state=document.getElementById('dlState');
+  const holdA=document.getElementById('pA-hold');
+  const holdB=document.getElementById('pB-hold');
+
+  if(step===0){
+    pA.style.cssText='background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8';
+    pB.style.cssText='background:var(--green-l);border-color:var(--green-b);color:var(--green)';
+    rFile.style.cssText='background:var(--amber-l);border-color:var(--amber-b)';
+    rPrint.style.cssText='background:var(--purple-l);border-color:var(--purple-b)';
+    arr1.innerHTML='<div class="arr" style="opacity:.3">↔</div><div>—</div>';
+    arr2.innerHTML='<div class="arr" style="opacity:.3">↔</div><div>—</div>';
+    holdA.textContent='Chưa giữ gì';holdB.textContent='Chưa giữ gì';
+    state.style.cssText='padding:.75rem 1rem;border-radius:8px;background:#f8fafc;border:2px solid var(--border);font-size:.875rem;font-weight:700;color:var(--text2);margin:.75rem 0';
+    state.textContent='Trạng thái: Bình thường — nhấn "Bước 1" để bắt đầu mô phỏng';
+    return;
+  }
+  if(step===1){
+    pA.style.cssText='background:#fef9c3;border-color:#fde68a;color:#ca8a04';
+    rFile.style.cssText='background:#fef9c3;border-color:#fde68a';
+    arr1.innerHTML='<div class="arr" style="color:var(--amber)">⟵</div><div style="color:var(--amber);font-size:10px">A giữ File</div>';
+    holdA.textContent='Đang giữ: 📄 File Excel';
+    state.textContent='Bước 1: Tiến trình A lấy File Excel → đang giữ, đồng thời cần Máy in...';
+    return;
+  }
+  if(step===2){
+    pB.style.cssText='background:#f3e8ff;border-color:var(--purple-b);color:var(--purple)';
+    rPrint.style.cssText='background:#f3e8ff;border-color:var(--purple-b)';
+    arr2.innerHTML='<div class="arr" style="color:var(--purple)">⟶</div><div style="color:var(--purple);font-size:10px">B giữ Máy in</div>';
+    holdB.textContent='Đang giữ: 🖨️ Máy in';
+    state.textContent='Bước 2: Tiến trình B lấy Máy in → đang giữ, đồng thời cần File Excel...';
+    return;
+  }
+  if(step===3){
+    pA.style.cssText='background:var(--red-l);border-color:var(--red-b);color:var(--red);animation:pulse 1s ease infinite';
+    pB.style.cssText='background:var(--red-l);border-color:var(--red-b);color:var(--red);animation:pulse 1s ease infinite';
+    rFile.style.cssText='background:var(--red-l);border-color:var(--red-b)';
+    rPrint.style.cssText='background:var(--red-l);border-color:var(--red-b)';
+    arr1.innerHTML='<div class="arr" style="color:var(--red)">↔</div><div style="color:var(--red);font-size:10px;text-align:center">A chờ Máy in<br>B chờ File</div>';
+    arr2.innerHTML='<div class="arr" style="color:var(--red)">↔</div><div style="color:var(--red);font-size:10px">DEADLOCK!</div>';
+    holdA.textContent='Giữ 📄 · Chờ 🖨️';holdB.textContent='Giữ 🖨️ · Chờ 📄';
+    state.style.cssText='padding:.75rem 1rem;border-radius:8px;background:var(--red-l);border:2px solid var(--red-b);font-size:.875rem;font-weight:800;color:var(--red);margin:.75rem 0';
+    state.textContent='💥 DEADLOCK! A chờ B nhả Máy in. B chờ A nhả File. Cả hai đứng im mãi mãi!';
+  }
+}
+
+/* ── NOT RESPONDING ── */
+function nrWait(){
+  const d=document.getElementById('nrDialog');
+  d.innerHTML=`<div class="nr-title"><span class="nr-ico">⏳</span><span>Đang chờ Microsoft Word...</span></div>
+  <div class="nr-body">Chương trình vẫn chưa phản hồi sau 30 giây...<br>Có vẻ nó đang bị Deadlock thật rồi.</div>
+  <div class="nr-btns">
+    <button class="nr-btn nr-end" onclick="nrEnd()">End Now — Đóng ngay bây giờ</button>
+  </div>`;
+}
+function nrEnd(){
+  const d=document.getElementById('nrDialog');
+  d.style.background='var(--green-l)';d.style.borderColor='var(--green-b)';
+  d.innerHTML=`<div class="nr-title" style="color:var(--green)"><span class="nr-ico">✅</span><span>Microsoft Word đã được đóng</span></div>
+  <div class="nr-body" style="color:#166534">Windows đã thu hồi tất cả tài nguyên (RAM, file lock, máy in...) mà Word đang giữ.<br><br>Các tiến trình khác đang chờ tài nguyên đó sẽ tiếp tục chạy được.<br><br><strong>Lưu ý: Dữ liệu chưa Ctrl+S sẽ bị mất!</strong></div>
+  <div class="nr-btns"><button class="nr-btn" style="background:var(--green-l);border-color:var(--green-b);color:var(--green)" onclick="nrReset()">Thử lại</button></div>`;
+}
+function nrReset(){
+  const d=document.getElementById('nrDialog');
+  d.style.background='var(--white)';d.style.borderColor='#cbd5e1';
+  d.innerHTML=`<div class="nr-title"><span class="nr-ico">⚠️</span><span>Microsoft Word — Not Responding</span></div>
+  <div class="nr-body">Chương trình này đã ngừng phản hồi.<br>Bạn muốn đóng chương trình và mất mọi dữ liệu chưa lưu không?</div>
+  <div class="nr-btns">
+    <button class="nr-btn nr-wait" onclick="nrWait()">Chờ xem có thoát không</button>
+    <button class="nr-btn nr-end" onclick="nrEnd()">End Now — Đóng ngay</button>
+  </div>`;
+}
+
+/* ── QUIZ ── */
+const Qs=[
+  {
+    q:'Deadlock trong máy tính là gì? Chọn mô tả đúng nhất.',
+    opts:['Máy tính bị hỏng phần cứng, không bật được','Các tiến trình chờ nhau giữ tài nguyên mãi mãi — không ai nhường, không ai tiến lên được','CPU chạy quá nóng và bị tắt khẩn cấp','RAM bị đầy hoàn toàn, không còn chỗ trống'],
+    ok:1,
+    expl:'✅ Đúng! Deadlock = Tình trạng bế tắc: tiến trình A giữ tài nguyên X và chờ Y; tiến trình B giữ Y và chờ X → cả hai chờ nhau mãi mãi, như kẹt xe ngã tư không ai chịu nhường.'
+  },
+  {
+    q:'Deadlock xảy ra khi có đủ 4 điều kiện. Điều kiện nào SAU ĐÂY là một trong 4 điều kiện đó?',
+    opts:['CPU chạy quá chậm (dưới 1 GHz)','RAM ít hơn 4 GB','Circular Wait — có chuỗi chờ vòng tròn: A chờ B, B chờ C, C chờ A','SSD bị đầy hoàn toàn'],
+    ok:2,
+    expl:'✅ Đúng! Circular Wait (chờ vòng tròn) là 1 trong 4 điều kiện Deadlock: Mutual Exclusion, Hold and Wait, No Preemption, Circular Wait. Nhớ tắt: "Mình Hay Nói Chậm".'
+  },
+  {
+    q:'Để phá vỡ Deadlock, bạn cần làm gì?',
+    opts:['Phải phá vỡ cả 4 điều kiện cùng một lúc','Chỉ cần phá vỡ ít nhất 1 trong 4 điều kiện là đủ','Tắt máy và bật lại','Xóa bộ nhớ RAM'],
+    ok:1,
+    expl:'✅ Đúng! Deadlock chỉ xảy ra khi có ĐỦ cả 4 điều kiện. Vì vậy chỉ cần phá 1 điều kiện là chuỗi Deadlock bị bẻ gãy — giống cắt 1 mắt xích trong sợi xích là xích đứt.'
+  },
+  {
+    q:'App Word bị "Not Responding" trên máy bạn. Cách xử lý ĐÚNG và AN TOÀN nhất là gì?',
+    opts:['Nhấn và giữ nút nguồn để tắt máy ngay','Nhấn Ctrl+Shift+Esc → Task Manager → chọn Word → End Task','Rút dây nguồn máy tính','Chờ vài ngày cho máy tự hết treo'],
+    ok:1,
+    expl:'✅ Đúng! End Task qua Task Manager là cách an toàn nhất — chỉ đóng app bị treo, các app khác không bị ảnh hưởng. Tắt nguồn cứng là cực chẳng đã, có thể hỏng file hệ thống.'
+  },
+  {
+    q:'Phím tắt nào LUÔN HOẠT ĐỘNG kể cả khi máy bị đứng hình nặng?',
+    opts:['Ctrl + C','Ctrl + Alt + Del','Alt + Tab','Ctrl + Z'],
+    ok:1,
+    expl:'✅ Đúng! Ctrl+Alt+Del là phím tắt đặc biệt được xử lý ở cấp hệ điều hành thấp nhất — luôn hoạt động ngay cả khi màn hình đóng băng. Từ đây bạn có thể mở Task Manager hoặc tắt/khởi động lại máy.'
+  },
+  {
+    q:'Windows dùng chiến lược nào để đối phó với Deadlock trong thực tế?',
+    opts:['Phòng ngừa hoàn toàn — không bao giờ để Deadlock xảy ra','Banker Algorithm — tính toán trước mọi trường hợp','Ostrich Algorithm — bỏ qua, để người dùng tự End Task khi cần','Tự động restart máy mỗi giờ'],
+    ok:2,
+    expl:'✅ Đúng! Windows dùng "Ostrich Algorithm" — bỏ qua vì Deadlock thực sự rất hiếm, chi phí phòng ngừa 100% quá cao. Khi xảy ra, người dùng tự End Task hoặc restart — đơn giản và hiệu quả.'
+  }
+];
+
+let qi=0,score=0,answered=false;
+const letters=['A','B','C','D'];
+function drawProg(){document.getElementById('qprog').innerHTML=Qs.map((_,i)=>`<div class="qpd ${i<qi?'done':i===qi?'curr':''}"></div>`).join('')}
+function renderQ(){
+  answered=false;drawProg();
+  const q=Qs[qi];
+  document.getElementById('qarea').innerHTML=`
+    <div class="qctr">Câu ${qi+1} / ${Qs.length}</div>
+    <div class="qtext">${q.q}</div>
+    <div class="qopts">${q.opts.map((o,i)=>`<button class="qo" onclick="doAns(${i})"><span class="ql">${letters[i]}.</span>${o}</button>`).join('')}</div>
+    <div id="qfb"></div>`;
+}
+function doAns(i){
+  if(answered)return;answered=true;
+  const q=Qs[qi];
+  document.querySelectorAll('.qo').forEach((b,idx)=>{
+    b.disabled=true;
+    if(idx===q.ok)b.classList.add('ok');
+    else if(idx===i&&i!==q.ok)b.classList.add('no');
+  });
+  const ok=i===q.ok;if(ok)score++;
+  const fb=document.getElementById('qfb');
+  if(qi<Qs.length-1){
+    fb.innerHTML=`<div class="qfb ${ok?'ok':'no'}"><strong>${ok?'✅ Chính xác!':'❌ Chưa đúng!'}</strong>${q.expl}</div><button class="qnext" onclick="qi++;renderQ()">Câu tiếp theo →</button>`;
+  } else {
+    const pct=Math.round(score/Qs.length*100);
+    const msg=pct===100?'🎉 Xuất sắc! Nắm bài hoàn toàn!':pct>=67?'💪 Tốt! Ôn lại phần còn yếu.':'📚 Đọc lại bài rồi thử lại nhé!';
+    const col=pct===100?'var(--green)':pct>=67?'var(--blue)':'var(--amber)';
+    fb.innerHTML=`<div class="qfb ${ok?'ok':'no'}"><strong>${ok?'✅ Chính xác!':'❌ Chưa đúng!'}</strong>${q.expl}</div>
+      <div class="score-wrap" style="margin-top:.75rem">
+        <div class="score-big" style="color:${col}">${score}/${Qs.length}</div>
+        <div class="msg">${msg}</div>
+        <p style="font-size:.9rem;color:var(--text2);margin-bottom:.75rem">Tỷ lệ đúng: ${pct}%</p>
+        <button onclick="qi=0;score=0;renderQ()">↺ Làm lại từ đầu</button>
+      </div>`;
+  }
+}
+renderQ();
+</script>
+</body>
+</html>
